@@ -4,27 +4,40 @@
 
 ## 문서 구조
 
+### 현재 생성된 문서
+
 ```
 docs/
-├── README.md (이 파일)
+├── README.md                    # 이 파일 (문서 가이드)
 ├── PROJECT_OVERVIEW.md          # 프로젝트 개요 및 핵심 개념
-├── DEVELOPMENT_PLAN.md          # 개발 계획서
+├── DEVELOPMENT_PLAN.md          # 6주 개발 계획서
 ├── architecture/                # 아키텍처 설계
-│   ├── system-design.md        # 시스템 아키텍처
-│   └── api-design.md           # API 설계 원칙
-├── database/                    # 데이터베이스 설계
-│   ├── schema.md               # 스키마 설계
-│   ├── erd.md                  # ERD 다이어그램
-│   └── migrations.md           # 마이그레이션 이력
+│   └── system-design.md        # ✅ 시스템 아키텍처 (의사결정, 트러블슈팅, 성능 고려사항 포함)
+├── database/                    # 데이터베이스 설계 (준비 중)
+│   └── (스키마 설계 문서 예정)
 ├── fastapi/                     # FastAPI 구현 문서
-│   ├── features/               # 기능별 문서
-│   │   ├── project-structure.md # 프로젝트 구조 설계
-│   │   ├── websocket.md        # WebSocket 구현
-│   │   └── ...                 # 각 기능별 문서
-│   └── best-practices.md       # FastAPI 베스트 프랙티스 적용
-└── deployment/                  # 배포 관련
-    └── deployment.md            # 배포 가이드
+│   ├── best-practices.md       # ✅ FastAPI 베스트 프랙티스 적용
+│   └── features/               # 기능별 문서
+│       ├── project-structure.md # ✅ 프로젝트 구조 설계 (코드 예시, 의사결정 기록 포함)
+│       └── models.md            # ✅ 모델 클래스 구현 (Role, Card, Player, Game)
+└── deployment/                  # 배포 관련 (준비 중)
+    └── (배포 가이드 예정)
 ```
+
+### 문서 상태
+
+| 문서 | 상태 | 설명 |
+|------|------|------|
+| PROJECT_OVERVIEW.md | ✅ 완료 | 프로젝트 개요, 용어 변환, 역할 및 승리 조건 |
+| DEVELOPMENT_PLAN.md | ✅ 완료 | 6주 개발 계획, Phase별 작업 목록 |
+| architecture/system-design.md | ✅ 완료 | 시스템 아키텍처, 의사결정, 트러블슈팅, 성능 고려사항 |
+| fastapi/best-practices.md | ✅ 완료 | FastAPI 베스트 프랙티스 적용 사항 |
+| fastapi/features/project-structure.md | ✅ 완료 | 프로젝트 구조 설계, 코드 예시, 의사결정 기록 |
+| fastapi/features/models.md | ✅ 완료 | 모델 클래스 구현 문서 |
+| architecture/api-design.md | ⏳ 예정 | API 설계 원칙 |
+| database/schema.md | ⏳ 예정 | 데이터베이스 스키마 설계 |
+| fastapi/features/websocket.md | ⏳ 예정 | WebSocket 구현 |
+| deployment/deployment.md | ⏳ 예정 | 배포 가이드 |
 
 ## 문서 작성 가이드
 
