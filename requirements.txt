@@ -1,0 +1,25 @@
+# FastAPI 및 서버
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+websockets==12.0
+python-multipart==0.0.6
+
+# 데이터 검증 및 설정
+pydantic==2.5.0
+pydantic-settings==2.1.0
+python-dotenv==1.0.0
+
+# 유틸리티
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# 개발 도구
+pytest==7.4.3
+pytest-asyncio==0.21.1
+black==23.11.0
+ruff==0.1.6
+mypy==1.7.1
+
+# 로깅
+loguru==0.7.2
+
