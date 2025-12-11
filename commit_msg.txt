@@ -1,2 +1,2 @@
-251211 > back-end > fast-api > 기본 모델 클래스 구현 및 문서 정리 완료
+251211 > back-end > fast-api > 카드 덱 생성 로직 구현 완료
 

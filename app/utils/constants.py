@@ -109,12 +109,110 @@ INITIAL_HP = {
 DEFAULT_RANGE = 1  # 기본 영향력 (사거리)
 
 # ==================== 카드 덱 구성 ====================
-# TODO: 실제 카드 구성 추가 필요
-CARD_DECK_CONFIG: Dict[str, int] = {
-    # 예시 (실제 구성은 게임 규칙에 맞게 수정 필요)
-    CardType.BANG: 25,
-    CardType.MISSED: 12,
-    CardType.BEER: 6,
-    # ... 나머지 카드들
+# BANG! 게임 규칙 기반 카드 덱 구성
+CARD_DECK_CONFIG: Dict[CardType, int] = {
+    # 공격 카드
+    CardType.BANG: 25,  # 정산
+    CardType.MISSED: 12,  # 회피
+    CardType.GATLING: 1,  # 전원 견제
+    CardType.INDIANS: 2,  # 패거리 습격
+    CardType.DUEL: 3,  # 승부
+    
+    # 회복 카드
+    CardType.BEER: 6,  # 비상금
+    
+    # 무기 카드
+    CardType.VOLCANIC: 2,  # 연속 상환 요구 (영향력 1)
+    CardType.WINCHESTER: 1,  # 독점 상권 선언 (영향력 5)
+    
+    # 장착 카드
+    CardType.SCOPE: 1,  # 첩보원 (영향력 +1)
+    CardType.BARREL: 1,  # 신의 한 수
+    CardType.MUSTANG: 1,  # 세력권 경계
+    CardType.JAIL: 3,  # 영업 금지
+    
+    # 특수 카드
+    CardType.PANIC: 4,  # 강제 압류
+    CardType.SALOON: 1,  # 공개 연회
+    CardType.GENERAL_STORE: 1,  # 자선 경매
+}
+
+# 카드별 상세 정보 (이름, 설명, 영향력 등)
+CARD_DETAILS: Dict[CardType, Dict[str, any]] = {
+    CardType.BANG: {
+        "name": "정산",
+        "description": "기본 공격 카드. 대상에게 재력 1 피해를 입힙니다.",
+        "range": 1,
+    },
+    CardType.MISSED: {
+        "name": "회피",
+        "description": "공격을 회피합니다.",
+        "range": 1,
+    },
+    CardType.GATLING: {
+        "name": "전원 견제",
+        "description": "모든 플레이어에게 공격합니다. 회피 카드로 방어 가능.",
+        "range": 0,  # 모든 플레이어 대상
+    },
+    CardType.INDIANS: {
+        "name": "패거리 습격",
+        "description": "모든 플레이어에게 공격합니다. 정산 카드로 방어 가능.",
+        "range": 0,
+    },
+    CardType.DUEL: {
+        "name": "승부",
+        "description": "1대1 카드 결투를 시작합니다.",
+        "range": 1,
+    },
+    CardType.BEER: {
+        "name": "비상금",
+        "description": "재력을 1 회복합니다.",
+        "range": 0,
+    },
+    CardType.VOLCANIC: {
+        "name": "연속 상환 요구",
+        "description": "영향력 1. 정산 카드를 무제한으로 사용할 수 있습니다.",
+        "range": 1,
+    },
+    CardType.WINCHESTER: {
+        "name": "독점 상권 선언",
+        "description": "영향력 5. 최대 사거리 무기입니다.",
+        "range": 5,
+    },
+    CardType.SCOPE: {
+        "name": "첩보원",
+        "description": "영향력 +1 증가합니다.",
+        "range": 0,
+    },
+    CardType.BARREL: {
+        "name": "신의 한 수",
+        "description": "공격 시 카드를 뽑아 방어할 수 있습니다.",
+        "range": 0,
+    },
+    CardType.MUSTANG: {
+        "name": "세력권 경계",
+        "description": "상대의 공격 영향력 +1 요구합니다.",
+        "range": 0,
+    },
+    CardType.JAIL: {
+        "name": "영업 금지",
+        "description": "대상의 다음 턴을 제한합니다.",
+        "range": 1,
+    },
+    CardType.PANIC: {
+        "name": "강제 압류",
+        "description": "사거리 1 내의 플레이어 카드 1장을 강탈합니다.",
+        "range": 1,
+    },
+    CardType.SALOON: {
+        "name": "공개 연회",
+        "description": "모든 플레이어의 재력을 1 회복합니다.",
+        "range": 0,
+    },
+    CardType.GENERAL_STORE: {
+        "name": "자선 경매",
+        "description": "모든 플레이어가 카드를 1장씩 순서대로 획득합니다.",
+        "range": 0,
+    },
 }
 
