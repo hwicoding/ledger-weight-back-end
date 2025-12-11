@@ -1,2 +1,2 @@
-251211 > back-end > fast-api > 게임 매니저 구현 및 문서 정리 완료
+251211 > back-end > fast-api > 턴 관리자 구현 및 문서 정리 완료
 
