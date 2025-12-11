@@ -22,7 +22,8 @@ docs/
 │       ├── models.md            # ✅ 모델 클래스 구현 (Role, Card, Player, Game)
 │       ├── card-manager.md      # ✅ 카드 관리자 구현 (덱 생성, 셔플, 드로우)
 │       ├── game-manager.md      # ✅ 게임 매니저 구현 (게임 생성, 초기화, 승리 조건)
-│       └── turn-manager.md      # ✅ 턴 관리자 구현 (턴 순서, 턴 단계, 카드 드로우)
+│       ├── turn-manager.md      # ✅ 턴 관리자 구현 (턴 순서, 턴 단계, 카드 드로우)
+│       └── action-handler.md    # ✅ 액션 핸들러 구현 (카드 사용, 공격/방어 처리)
 └── deployment/                  # 배포 관련 (준비 중)
     └── (배포 가이드 예정)
 ```
@@ -40,6 +41,7 @@ docs/
 | fastapi/features/card-manager.md | ✅ 완료 | 카드 관리자 구현 문서 |
 | fastapi/features/game-manager.md | ✅ 완료 | 게임 매니저 구현 문서 |
 | fastapi/features/turn-manager.md | ✅ 완료 | 턴 관리자 구현 문서 |
+| fastapi/features/action-handler.md | ✅ 완료 | 액션 핸들러 구현 문서 |
 | architecture/api-design.md | ⏳ 예정 | API 설계 원칙 |
 | database/schema.md | ⏳ 예정 | 데이터베이스 스키마 설계 |
 | fastapi/features/websocket.md | ⏳ 예정 | WebSocket 구현 |
