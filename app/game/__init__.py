@@ -3,6 +3,7 @@
 """
 
 from .card_manager import CardManager
+from .game_manager import GameManager
 
-__all__ = ["CardManager"]
+__all__ = ["CardManager", "GameManager"]
 

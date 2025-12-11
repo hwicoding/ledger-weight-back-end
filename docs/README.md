@@ -19,7 +19,9 @@ docs/
 │   ├── best-practices.md       # ✅ FastAPI 베스트 프랙티스 적용
 │   └── features/               # 기능별 문서
 │       ├── project-structure.md # ✅ 프로젝트 구조 설계 (코드 예시, 의사결정 기록 포함)
-│       └── models.md            # ✅ 모델 클래스 구현 (Role, Card, Player, Game)
+│       ├── models.md            # ✅ 모델 클래스 구현 (Role, Card, Player, Game)
+│       ├── card-manager.md      # ✅ 카드 관리자 구현 (덱 생성, 셔플, 드로우)
+│       └── game-manager.md      # ✅ 게임 매니저 구현 (게임 생성, 초기화, 승리 조건)
 └── deployment/                  # 배포 관련 (준비 중)
     └── (배포 가이드 예정)
 ```
@@ -34,6 +36,8 @@ docs/
 | fastapi/best-practices.md | ✅ 완료 | FastAPI 베스트 프랙티스 적용 사항 |
 | fastapi/features/project-structure.md | ✅ 완료 | 프로젝트 구조 설계, 코드 예시, 의사결정 기록 |
 | fastapi/features/models.md | ✅ 완료 | 모델 클래스 구현 문서 |
+| fastapi/features/card-manager.md | ✅ 완료 | 카드 관리자 구현 문서 |
+| fastapi/features/game-manager.md | ✅ 완료 | 게임 매니저 구현 문서 |
 | architecture/api-design.md | ⏳ 예정 | API 설계 원칙 |
 | database/schema.md | ⏳ 예정 | 데이터베이스 스키마 설계 |
 | fastapi/features/websocket.md | ⏳ 예정 | WebSocket 구현 |
