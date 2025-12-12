@@ -108,6 +108,15 @@ INITIAL_HP = {
 
 DEFAULT_RANGE = 1  # 기본 영향력 (사거리)
 
+# ==================== 게임 설정 ====================
+# 플레이어 수 제한
+MIN_PLAYERS: int = 4
+MAX_PLAYERS: int = 7
+
+# WebSocket 설정
+WS_MAX_CONNECTIONS: int = 100
+WS_HEARTBEAT_INTERVAL: int = 30
+
 # ==================== 카드 덱 구성 ====================
 # BANG! 게임 규칙 기반 카드 덱 구성
 CARD_DECK_CONFIG: Dict[CardType, int] = {
