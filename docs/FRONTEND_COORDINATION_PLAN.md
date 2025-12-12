@@ -77,10 +77,11 @@
 ### Phase 1: WebSocket 엔드포인트 수정 (우선순위: 높음)
 
 #### 1.1 로비 엔드포인트 추가
-- [ ] `/lobby/{game_id}` WebSocket 엔드포인트 구현
-- [ ] 쿼리 파라미터로 `player` 이름 받기
-- [ ] 로비 상태 관리 (게임 시작 전 대기 상태)
-- [ ] 플레이어 참가 시 자동 게임 상태 전송
+- [x] `/lobby/{game_id}` WebSocket 엔드포인트 구현
+- [x] 쿼리 파라미터로 `player` 이름 받기
+- [x] 플레이어 ID 자동 생성 (UUID)
+- [x] 연결 성공 시 자동 게임 참가 처리
+- [x] 플레이어 참가 시 자동 게임 상태 전송
 
 **파일**: `app/main.py`, `app/websocket/message_handler.py`
 

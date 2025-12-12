@@ -31,11 +31,11 @@
 ### Phase 1: 프론트엔드 연동 준비 (우선순위: 높음)
 
 #### 1.1 로비 엔드포인트 구현
-- [ ] `/lobby/{game_id}` WebSocket 엔드포인트 구현
-- [ ] 쿼리 파라미터로 `player` 이름 받기
-- [ ] 플레이어 ID 자동 생성 (UUID)
-- [ ] 연결 성공 시 자동 게임 참가 처리
-- [ ] `GAME_STATE_UPDATE` 메시지 자동 전송
+- [x] `/lobby/{game_id}` WebSocket 엔드포인트 구현 (2025-12-12 완료)
+- [x] 쿼리 파라미터로 `player` 이름 받기
+- [x] 플레이어 ID 자동 생성 (UUID)
+- [x] 연결 성공 시 자동 게임 참가 처리
+- [x] `GAME_STATE_UPDATE` 메시지 자동 전송
 
 **예상 소요 시간**: 30분  
 **파일**: `app/main.py`, `app/websocket/message_handler.py`
