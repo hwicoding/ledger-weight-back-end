@@ -11,7 +11,7 @@ from app.game.game_manager import GameManager
 from app.game.turn_manager import TurnManager
 from app.game.action_handler import ActionHandler
 from app.websocket.connection_manager import ConnectionManager
-from app.utils.constants import ActionType, GameState
+from app.utils.constants import ActionType, GameState, MIN_PLAYERS
 
 
 class MessageHandler:
@@ -55,6 +55,8 @@ class MessageHandler:
             return await self.handle_join_game(player_id, message)
         elif message_type == "GET_GAME_STATE":
             return await self.handle_get_game_state(player_id, message)
+        elif message_type == "START_GAME":
+            return await self.handle_start_game(player_id, message)
         else:
             return {
                 "success": False,
@@ -244,6 +246,82 @@ class MessageHandler:
         return {
             "success": True,
             "message": "게임 상태를 전송했습니다.",
+        }
+    
+    async def handle_start_game(self, player_id: str, message: dict) -> Dict:
+        """
+        게임 시작 메시지를 처리합니다.
+        
+        Args:
+            player_id: 플레이어 ID
+            message: {
+                "type": "START_GAME",
+                "game_id": str (optional, 없으면 플레이어가 속한 게임 사용)
+            }
+            
+        Returns:
+            처리 결과
+        """
+        # game_id 확인
+        game_id = message.get("game_id")
+        if not game_id:
+            game_id = self.connection_manager.get_player_game(player_id)
+            if not game_id:
+                return {
+                    "success": False,
+                    "message": "게임 ID가 필요하거나 플레이어가 게임에 참여하지 않았습니다.",
+                }
+        
+        # 게임 조회
+        game = self.game_manager.get_game(game_id)
+        if not game:
+            return {
+                "success": False,
+                "message": "게임을 찾을 수 없습니다.",
+            }
+        
+        # 플레이어가 게임에 참여했는지 확인
+        if not any(p.id == player_id for p in game.players):
+            return {
+                "success": False,
+                "message": "플레이어가 이 게임에 참여하지 않았습니다.",
+            }
+        
+        # 게임 시작 시도
+        success = self.game_manager.start_game(game_id)
+        
+        if not success:
+            # 실패 원인 확인
+            if game.state != GameState.WAITING:
+                return {
+                    "success": False,
+                    "message": "게임이 이미 시작되었거나 종료되었습니다.",
+                }
+            elif len(game.players) < MIN_PLAYERS:
+                return {
+                    "success": False,
+                    "message": f"게임을 시작하려면 최소 {MIN_PLAYERS}명의 플레이어가 필요합니다. (현재: {len(game.players)}명)",
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": "게임을 시작할 수 없습니다.",
+                }
+        
+        # 게임 시작 이벤트 로그 추가
+        game = self.game_manager.get_game(game_id)  # 업데이트된 게임 상태 가져오기
+        game.add_event(
+            message=f"게임이 시작되었습니다! 총 {len(game.players)}명의 플레이어가 참여합니다.",
+            event_type="notification"
+        )
+        
+        # 모든 플레이어에게 게임 상태 전송
+        await self.broadcast_game_state(game_id)
+        
+        return {
+            "success": True,
+            "message": "게임이 시작되었습니다.",
+            "game_id": game_id,
         }
     
     async def send_game_state_to_player(self, player_id: str, game_id: str) -> bool:
