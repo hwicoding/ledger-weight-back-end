@@ -227,7 +227,7 @@ class ActionHandler:
         
         # 공격 처리
         event_message = f"{attacker.name}이(가) {target.name}에게 정산을 시도했습니다."
-        self.game.add_event(event_message)
+        self.game.add_event(event_message, "action")
         
         # 대응 단계로 설정
         self.turn_manager.set_respond_phase(target_id)
@@ -282,7 +282,7 @@ class ActionHandler:
         player.heal(1)
         
         event_message = f"{player.name}이(가) 비상금을 사용하여 재력을 {old_hp}에서 {player.hp}로 회복했습니다."
-        self.game.add_event(event_message)
+        self.game.add_event(event_message, "action")
         
         return {
             "success": True,
@@ -350,7 +350,7 @@ class ActionHandler:
         self.card_manager.discard_card(removed_card)
         
         event_message = f"{player.name}이(가) 회피 카드를 사용하여 공격을 막았습니다."
-        self.game.add_event(event_message)
+        self.game.add_event(event_message, "action")
         
         # 원래 플레이어의 턴으로 복귀
         if self.game.current_player_id:
@@ -395,7 +395,7 @@ class ActionHandler:
         else:
             event_message = f"{player.name}이(가) 공격을 받아 재력이 {player.hp}로 감소했습니다."
         
-        self.game.add_event(event_message)
+        self.game.add_event(event_message, "action")
         
         # 원래 플레이어의 턴으로 복귀
         if self.game.current_player_id:
@@ -427,10 +427,13 @@ class ActionHandler:
         success = self.turn_manager.end_turn(player_id)
         
         if success:
+            player = self.game.get_player(player_id)
+            event_message = f"{player.name}의 턴이 종료되었습니다."
+            self.game.add_event(event_message, "notification")
             return {
                 "success": True,
                 "message": "턴이 종료되었습니다.",
-                "event": f"{self.game.get_player(player_id).name}의 턴이 종료되었습니다.",
+                "event": event_message,
             }
         else:
             return {

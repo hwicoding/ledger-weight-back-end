@@ -77,7 +77,7 @@ class TurnManager:
         cards_drawn = self.draw_cards_for_player(player_id, 2)
         
         if cards_drawn:
-            self.game.add_event(f"{player.name}이(가) 카드 {len(cards_drawn)}장을 뽑았습니다.")
+            self.game.add_event(f"{player.name}이(가) 카드 {len(cards_drawn)}장을 뽑았습니다.", "action")
         
         # 카드 사용 단계로 이동
         self.game.set_turn_state(TurnState.PLAY_CARD)
@@ -158,7 +158,7 @@ class TurnManager:
         
         # 턴 종료 상태로 변경
         self.game.set_turn_state(TurnState.END_TURN)
-        self.game.add_event(f"{player.name}의 턴이 종료되었습니다.")
+        self.game.add_event(f"{player.name}의 턴이 종료되었습니다.", "notification")
         
         # 다음 플레이어로 이동
         return self.move_to_next_player()

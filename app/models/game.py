@@ -25,6 +25,7 @@ class Game(BaseModel):
     turn_state: TurnState = Field(TurnState.DRAW, description="턴 상태")
     turn_number: int = Field(0, description="턴 번호")
     last_event: Optional[str] = Field(None, description="마지막 이벤트 메시지")
+    events: List[Dict] = Field(default_factory=list, description="게임 이벤트 로그 (최근 50개)")
     
     class Config:
         arbitrary_types_allowed = True
@@ -180,33 +181,82 @@ class Game(BaseModel):
         """턴 상태를 설정합니다."""
         self.turn_state = state
     
-    def add_event(self, event: str) -> None:
-        """이벤트 메시지를 추가합니다."""
+    def add_event(self, event: str, event_type: str = "action") -> None:
+        """
+        이벤트 메시지를 추가합니다.
+        
+        Args:
+            event: 이벤트 메시지
+            event_type: 이벤트 타입 ("action" | "notification" | "error")
+        """
+        import time
         self.last_event = event
+        
+        # 이벤트 로그에 추가
+        event_dict = {
+            "id": f"event_{len(self.events)}_{int(time.time() * 1000)}",
+            "timestamp": int(time.time() * 1000),  # Unix timestamp (밀리초)
+            "message": event,
+            "type": event_type,
+        }
+        self.events.append(event_dict)
+        
+        # 최근 50개만 유지
+        if len(self.events) > 50:
+            self.events = self.events[-50:]
     
     def to_dict(self, player_id: Optional[str] = None) -> dict:
         """
-        딕셔너리로 변환 (WebSocket 전송용)
+        딕셔너리로 변환 (WebSocket 전송용 - 프론트엔드 요청 형식)
         
         Args:
             player_id: 조회하는 플레이어 ID (자신의 핸드는 보이고, 다른 플레이어는 숨김)
             
         Returns:
-            게임 상태 딕셔너리
+            게임 상태 딕셔너리 (프론트엔드 요청 형식)
         """
+        # phase 결정
+        if self.state == GameState.WAITING:
+            phase = "lobby"
+        elif self.state == GameState.IN_PROGRESS:
+            phase = "playing"
+        elif self.state == GameState.FINISHED:
+            phase = "finished"
+        else:
+            phase = "lobby"
+        
+        # turnState 구성
+        turn_state = {
+            "currentTurn": self.current_player_id or "",
+            "timeLeft": 60,  # TODO: 실제 타이머 구현 시 수정
+        }
+        
+        # requiredResponse 설정 (대응 단계일 때)
+        # TODO: 공격을 받은 플레이어를 정확히 추적하기 위해 Game 모델에 defending_player_id 필드 추가 필요
+        if self.turn_state == TurnState.RESPOND:
+            # 대응해야 할 플레이어 찾기 (현재 턴 플레이어가 아닌 생존 플레이어)
+            responding_player = None
+            for player in self.players:
+                if player.is_alive and (not self.current_player_id or player.id != self.current_player_id):
+                    responding_player = player
+                    break
+            
+            if responding_player:
+                turn_state["requiredResponse"] = {
+                    "type": "RESPOND_ATTACK",
+                    "message": f"{responding_player.name}이(가) 공격을 받았습니다. 회피하시겠습니까?",
+                }
+        
         return {
-            "id": self.id,
-            "state": self.state.value,
+            "gameId": self.id,
             "players": [
                 player.to_dict(hide_hand=(player.id != player_id))
                 for player in self.players
             ],
-            "deck_count": len(self.deck),
-            "discard_top": self.discard_pile[-1].to_dict() if self.discard_pile else None,
-            "current_player_id": self.current_player_id,
-            "turn_state": self.turn_state.value,
-            "turn_number": self.turn_number,
-            "last_event": self.last_event,
+            "currentTurn": self.current_player_id or "",
+            "turnState": turn_state,
+            "events": self.events[-50:],  # 최근 50개 이벤트
+            "phase": phase,
         }
     
     def __str__(self) -> str:

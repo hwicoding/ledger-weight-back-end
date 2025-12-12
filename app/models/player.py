@@ -167,29 +167,54 @@ class Player(BaseModel):
     
     def to_dict(self, hide_hand: bool = False) -> dict:
         """
-        딕셔너리로 변환 (WebSocket 전송용)
+        딕셔너리로 변환 (WebSocket 전송용 - 프론트엔드 요청 형식)
         
         Args:
             hide_hand: 핸드 카드 숨김 여부 (다른 플레이어 조회 시)
             
         Returns:
-            플레이어 정보 딕셔너리
+            플레이어 정보 딕셔너리 (프론트엔드 요청 형식)
         """
+        # 역할 이름 (다른 플레이어는 None)
+        role_name = self.role.name if not hide_hand else None
+        
+        # 핸드 카드 (자신은 전체 정보, 다른 플레이어는 개수만)
+        if hide_hand:
+            hand = []  # 다른 플레이어는 빈 배열
+        else:
+            hand = [
+                {
+                    "id": card.id,
+                    "name": card.name,
+                    "suit": card.suit.value if card.suit else None,
+                    "rank": card.rank.value if card.rank else None,
+                    "description": card.description,
+                }
+                for card in self.hand
+            ]
+        
+        # 테이블 카드 (장착 카드들)
+        table_cards = []
+        for slot, card in self.equipment.items():
+            table_cards.append({
+                "id": card.id,
+                "name": card.name,
+                "suit": card.suit.value if card.suit else None,
+                "rank": card.rank.value if card.rank else None,
+                "description": card.description,
+            })
+        
+        # 보물 배열
+        treasures = [self.treasure] if self.treasure else []
+        
         return {
             "id": self.id,
-            "name": self.name,
-            "role": self.role.name if not hide_hand else None,  # 역할은 자신만 볼 수 있음
+            "role": role_name,
             "hp": self.hp,
-            "max_hp": self.max_hp,
-            "range": self.get_effective_range(),
-            "hand_count": self.get_hand_count(),
-            "hand": [card.to_dict() for card in self.hand] if not hide_hand else None,
-            "equipment": {
-                slot: card.to_dict() for slot, card in self.equipment.items()
-            },
-            "treasure": self.treasure,
-            "is_alive": self.is_alive,
-            "position": self.position,
+            "influence": self.get_effective_range(),
+            "treasures": treasures,
+            "hand": hand,
+            "tableCards": table_cards,
         }
     
     def __str__(self) -> str:
