@@ -28,6 +28,10 @@ docs/
     └── (배포 가이드 예정)
 ```
 
+**참고**: 프로젝트 루트의 `logs/` 폴더에는 날짜별 작업일지가 저장됩니다.
+- 구조: `logs/YYYY/MM/DD.md`
+- 예시: `logs/2025/12/11.md` - 2025년 12월 11일 작업일지
+
 ### 문서 상태
 
 | 문서 | 상태 | 설명 |
@@ -44,8 +48,12 @@ docs/
 | fastapi/features/action-handler.md | ✅ 완료 | 액션 핸들러 구현 문서 |
 | architecture/api-design.md | ⏳ 예정 | API 설계 원칙 |
 | database/schema.md | ⏳ 예정 | 데이터베이스 스키마 설계 |
-| fastapi/features/websocket.md | ⏳ 예정 | WebSocket 구현 |
+| fastapi/features/websocket.md | ✅ 완료 | WebSocket 구현 |
 | deployment/deployment.md | ⏳ 예정 | 배포 가이드 |
+| FRONTEND_COORDINATION_PLAN.md | ✅ 완료 | 프론트엔드 연동 작업 계획 |
+| NAS_SERVER_SETUP_GUIDE.md | ✅ 완료 | NAS 서버 구축 가이드 |
+| DATABASE_RECOMMENDATION.md | ✅ 완료 | 데이터베이스 선택 가이드 |
+| DEPLOYMENT_CHECKLIST_RESPONSE.md | ✅ 완료 | 배포 전 확인 사항 답변 |
 
 ## 문서 작성 가이드
 

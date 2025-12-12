@@ -17,7 +17,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.12'
       
       - name: Install dependencies
         run: |
@@ -26,7 +26,7 @@ jobs:
       
       - name: Run tests (if available)
         run: |
-          # pytest tests/  # 테스트가 있다면 활성화
+          # pytest tests/  # 테스트가 있다면
           echo "Tests passed"
       
       - name: Deploy to NAS Server
@@ -37,7 +37,7 @@ jobs:
           key: ${{ secrets.NAS_SERVER_SSH_KEY }}
           port: ${{ secrets.NAS_SERVER_PORT }}
           script: |
-            cd /opt/ledger-weight/ledger-weight-back-end
+            cd /home/iwh/ledger-weight/ledger-weight-back-end
             git pull origin main
             source venv/bin/activate
             pip install -r requirements.txt
