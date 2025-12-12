@@ -27,6 +27,7 @@ class Player(BaseModel):
     treasure: Optional[str] = Field(None, description="장착 보물 이름")
     is_alive: bool = Field(True, description="생존 여부")
     position: int = Field(..., description="플레이어 위치 (순서)")
+    is_bot: bool = Field(False, description="AI 플레이어 여부")
     
     class Config:
         arbitrary_types_allowed = True
@@ -38,6 +39,7 @@ class Player(BaseModel):
         name: str,
         role: RoleEnum,
         position: int,
+        is_bot: bool = False,
     ) -> "Player":
         """
         플레이어 생성 팩토리 메서드
@@ -47,6 +49,7 @@ class Player(BaseModel):
             name: 플레이어 이름
             role: 역할 Enum
             position: 플레이어 위치
+            is_bot: AI 플레이어 여부 (기본값: False)
             
         Returns:
             생성된 Player 인스턴스
@@ -63,6 +66,7 @@ class Player(BaseModel):
             range=DEFAULT_RANGE,
             position=position,
             is_alive=True,
+            is_bot=is_bot,
         )
     
     def take_damage(self, damage: int = 1) -> bool:
@@ -176,31 +180,39 @@ class Player(BaseModel):
             플레이어 정보 딕셔너리 (프론트엔드 요청 형식)
         """
         # 역할 이름 (다른 플레이어는 None)
-        role_name = self.role.name if not hide_hand else None
+        # role이 Role 객체인지 확인
+        if hasattr(self.role, 'name'):
+            role_name = self.role.name if not hide_hand else None
+        else:
+            # role이 문자열이거나 다른 타입인 경우
+            role_name = str(self.role) if not hide_hand else None
         
         # 핸드 카드 (자신은 전체 정보, 다른 플레이어는 개수만)
         if hide_hand:
             hand = []  # 다른 플레이어는 빈 배열
         else:
-            hand = [
-                {
+            hand = []
+            for card in self.hand:
+                suit_val = card.suit.value if (card.suit and hasattr(card.suit, 'value')) else (card.suit if card.suit else None)
+                rank_val = card.rank.value if (card.rank and hasattr(card.rank, 'value')) else (card.rank if card.rank else None)
+                hand.append({
                     "id": card.id,
                     "name": card.name,
-                    "suit": card.suit.value if card.suit else None,
-                    "rank": card.rank.value if card.rank else None,
+                    "suit": suit_val,
+                    "rank": rank_val,
                     "description": card.description,
-                }
-                for card in self.hand
-            ]
+                })
         
         # 테이블 카드 (장착 카드들)
         table_cards = []
         for slot, card in self.equipment.items():
+            suit_val = card.suit.value if (card.suit and hasattr(card.suit, 'value')) else (card.suit if card.suit else None)
+            rank_val = card.rank.value if (card.rank and hasattr(card.rank, 'value')) else (card.rank if card.rank else None)
             table_cards.append({
                 "id": card.id,
                 "name": card.name,
-                "suit": card.suit.value if card.suit else None,
-                "rank": card.rank.value if card.rank else None,
+                "suit": suit_val,
+                "rank": rank_val,
                 "description": card.description,
             })
         
@@ -209,12 +221,17 @@ class Player(BaseModel):
         
         return {
             "id": self.id,
+            "name": self.name,
             "role": role_name,
             "hp": self.hp,
             "influence": self.get_effective_range(),
             "treasures": treasures,
             "hand": hand,
+            "handCount": len(self.hand) if hide_hand else len(self.hand),
             "tableCards": table_cards,
+            "isAlive": self.is_alive,
+            "position": self.position,
+            "isBot": self.is_bot,
         }
     
     def __str__(self) -> str:

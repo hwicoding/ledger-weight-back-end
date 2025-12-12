@@ -11,7 +11,7 @@ from app.game.game_manager import GameManager
 from app.game.turn_manager import TurnManager
 from app.game.action_handler import ActionHandler
 from app.websocket.connection_manager import ConnectionManager
-from app.utils.constants import ActionType, GameState, MIN_PLAYERS
+from app.utils.constants import ActionType, GameState, MIN_PLAYERS, MAX_PLAYERS
 
 
 class MessageHandler:
@@ -47,20 +47,32 @@ class MessageHandler:
         Returns:
             처리 결과
         """
-        message_type = message.get("type")
-        
-        if message_type == "PLAYER_ACTION":
-            return await self.handle_player_action(player_id, message)
-        elif message_type == "JOIN_GAME":
-            return await self.handle_join_game(player_id, message)
-        elif message_type == "GET_GAME_STATE":
-            return await self.handle_get_game_state(player_id, message)
-        elif message_type == "START_GAME":
-            return await self.handle_start_game(player_id, message)
-        else:
+        try:
+            message_type = message.get("type")
+            
+            if message_type == "PLAYER_ACTION":
+                return await self.handle_player_action(player_id, message)
+            elif message_type == "JOIN_GAME":
+                return await self.handle_join_game(player_id, message)
+            elif message_type == "GET_GAME_STATE":
+                return await self.handle_get_game_state(player_id, message)
+            elif message_type == "START_GAME":
+                return await self.handle_start_game(player_id, message)
+            elif message_type == "ADD_AI_PLAYER":
+                return await self.handle_add_ai_player(player_id, message)
+            else:
+                return {
+                    "success": False,
+                    "message": f"지원하지 않는 메시지 타입: {message_type}",
+                }
+        except Exception as e:
+            # 예외 발생 시 에러 메시지 반환
+            import traceback
+            print(f"[ERROR] handle_message 예외 발생: {type(e).__name__}: {e}")
+            traceback.print_exc()
             return {
                 "success": False,
-                "message": f"지원하지 않는 메시지 타입: {message_type}",
+                "message": f"메시지 처리 중 오류가 발생했습니다: {str(e)}",
             }
     
     async def handle_player_action(self, player_id: str, message: dict) -> Dict:
@@ -311,8 +323,8 @@ class MessageHandler:
         # 게임 시작 이벤트 로그 추가
         game = self.game_manager.get_game(game_id)  # 업데이트된 게임 상태 가져오기
         game.add_event(
-            message=f"게임이 시작되었습니다! 총 {len(game.players)}명의 플레이어가 참여합니다.",
-            event_type="notification"
+            f"게임이 시작되었습니다! 총 {len(game.players)}명의 플레이어가 참여합니다.",
+            "notification"
         )
         
         # 모든 플레이어에게 게임 상태 전송
@@ -322,6 +334,92 @@ class MessageHandler:
             "success": True,
             "message": "게임이 시작되었습니다.",
             "game_id": game_id,
+        }
+    
+    async def handle_add_ai_player(self, player_id: str, message: dict) -> Dict:
+        """
+        AI 플레이어 추가 메시지를 처리합니다.
+        
+        Args:
+            player_id: 플레이어 ID
+            message: {
+                "type": "ADD_AI_PLAYER",
+                "game_id": str (optional, 없으면 플레이어가 속한 게임 사용),
+                "count": int,  // 추가할 AI 플레이어 수
+                "difficulty": str  // "easy" | "medium" | "hard"
+            }
+            
+        Returns:
+            처리 결과
+        """
+        # game_id 확인
+        game_id = message.get("game_id")
+        if not game_id:
+            game_id = self.connection_manager.get_player_game(player_id)
+            if not game_id:
+                return {
+                    "success": False,
+                    "message": "게임 ID가 필요하거나 플레이어가 게임에 참여하지 않았습니다.",
+                }
+        
+        # 게임 조회
+        game = self.game_manager.get_game(game_id)
+        if not game:
+            return {
+                "success": False,
+                "message": "게임을 찾을 수 없습니다.",
+            }
+        
+        # 플레이어가 게임에 참여했는지 확인
+        if not any(p.id == player_id for p in game.players):
+            return {
+                "success": False,
+                "message": "플레이어가 이 게임에 참여하지 않았습니다.",
+            }
+        
+        # count 확인
+        count = message.get("count", 1)
+        if not isinstance(count, int) or count <= 0:
+            return {
+                "success": False,
+                "message": "AI 플레이어 수는 1 이상의 정수여야 합니다.",
+            }
+        
+        if count > MAX_PLAYERS:
+            return {
+                "success": False,
+                "message": f"AI 플레이어 수는 최대 {MAX_PLAYERS}명까지 추가할 수 있습니다.",
+            }
+        
+        # difficulty 확인
+        difficulty = message.get("difficulty", "medium")
+        if difficulty not in ["easy", "medium", "hard"]:
+            return {
+                "success": False,
+                "message": "난이도는 'easy', 'medium', 'hard' 중 하나여야 합니다.",
+            }
+        
+        # AI 플레이어 추가
+        result = self.game_manager.add_ai_players_to_game(
+            game_id=game_id,
+            count=count,
+            difficulty=difficulty,
+        )
+        
+        if not result.get("success"):
+            return {
+                "success": False,
+                "message": result.get("message", "AI 플레이어 추가에 실패했습니다."),
+            }
+        
+        # 모든 플레이어에게 게임 상태 전송
+        await self.broadcast_game_state(game_id)
+        
+        return {
+            "success": True,
+            "message": result.get("message", f"AI 플레이어 {result.get('added_count', 0)}명이 추가되었습니다."),
+            "game_id": game_id,
+            "added_count": result.get("added_count", 0),
         }
     
     async def send_game_state_to_player(self, player_id: str, game_id: str) -> bool:

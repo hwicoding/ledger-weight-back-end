@@ -107,6 +107,95 @@ class GameManager:
         game.add_player(player)
         return True
     
+    def add_ai_players_to_game(
+        self,
+        game_id: str,
+        count: int,
+        difficulty: str = "medium",
+    ) -> Dict:
+        """
+        게임에 AI 플레이어를 추가합니다.
+        
+        Args:
+            game_id: 게임 ID
+            count: 추가할 AI 플레이어 수
+            difficulty: AI 난이도 ("easy", "medium", "hard")
+            
+        Returns:
+            {
+                "success": bool,
+                "added_count": int,  # 실제 추가된 AI 플레이어 수
+                "message": str
+            }
+        """
+        game = self.get_game(game_id)
+        if not game:
+            return {
+                "success": False,
+                "added_count": 0,
+                "message": "게임을 찾을 수 없습니다.",
+            }
+        
+        # 게임 상태 확인
+        if game.state != GameState.WAITING:
+            return {
+                "success": False,
+                "added_count": 0,
+                "message": "게임이 이미 시작되었거나 종료되었습니다.",
+            }
+        
+        # 현재 플레이어 수 확인
+        current_count = len(game.players)
+        available_slots = MAX_PLAYERS - current_count
+        
+        if available_slots <= 0:
+            return {
+                "success": False,
+                "added_count": 0,
+                "message": f"최대 플레이어 수를 초과했습니다. (현재: {current_count}명, 최대: {MAX_PLAYERS}명)",
+            }
+        
+        # 추가 가능한 수만큼만 추가
+        add_count = min(count, available_slots)
+        
+        # AI 플레이어 이름 생성
+        ai_players = []
+        for i in range(add_count):
+            ai_id = f"ai_{uuid.uuid4().hex[:8]}"
+            ai_name = f"AI_Player_{current_count + i + 1}"
+            
+            # 난이도에 따른 이름 (선택사항)
+            if difficulty == "easy":
+                ai_name = f"AI_Easy_{current_count + i + 1}"
+            elif difficulty == "hard":
+                ai_name = f"AI_Hard_{current_count + i + 1}"
+            
+            # AI 플레이어 생성
+            position = current_count + i
+            player = Player.create(
+                player_id=ai_id,
+                name=ai_name,
+                role=RoleEnum.SHERIFF,  # 임시 역할 (게임 시작 시 재배정)
+                position=position,
+                is_bot=True,
+            )
+            
+            game.add_player(player)
+            ai_players.append(player)
+        
+        # 이벤트 로그 추가
+        if add_count > 0:
+            game.add_event(
+                f"AI 플레이어 {add_count}명이 추가되었습니다. (난이도: {difficulty})",
+                "notification"
+            )
+        
+        return {
+            "success": True,
+            "added_count": add_count,
+            "message": f"AI 플레이어 {add_count}명이 추가되었습니다.",
+        }
+    
     def start_game(self, game_id: str) -> bool:
         """
         게임을 시작합니다.

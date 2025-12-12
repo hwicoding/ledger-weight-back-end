@@ -68,21 +68,29 @@ class Card(BaseModel):
         return self.range >= target_range
     
     def __str__(self) -> str:
-        suit_str = f" {self.suit.value}" if self.suit else ""
-        rank_str = f" {self.rank.value}" if self.rank else ""
+        suit_val = self.suit.value if hasattr(self.suit, 'value') else (self.suit if self.suit else "")
+        rank_val = self.rank.value if hasattr(self.rank, 'value') else (self.rank if self.rank else "")
+        suit_str = f" {suit_val}" if suit_val else ""
+        rank_str = f" {rank_val}" if rank_val else ""
         return f"{self.name}{suit_str}{rank_str}"
     
     def __repr__(self) -> str:
-        return f"Card(id={self.id}, type={self.card_type.value}, name={self.name})"
+        card_type_val = self.card_type.value if hasattr(self.card_type, 'value') else str(self.card_type)
+        return f"Card(id={self.id}, type={card_type_val}, name={self.name})"
     
     def to_dict(self) -> dict:
         """딕셔너리로 변환"""
+        # use_enum_values = True로 인해 이미 값으로 변환되었을 수 있음
+        card_type_val = self.card_type.value if hasattr(self.card_type, 'value') else str(self.card_type)
+        suit_val = self.suit.value if (self.suit and hasattr(self.suit, 'value')) else (self.suit if self.suit else None)
+        rank_val = self.rank.value if (self.rank and hasattr(self.rank, 'value')) else (self.rank if self.rank else None)
+        
         return {
             "id": self.id,
-            "card_type": self.card_type.value,
+            "card_type": card_type_val,
             "name": self.name,
-            "suit": self.suit.value if self.suit else None,
-            "rank": self.rank.value if self.rank else None,
+            "suit": suit_val,
+            "rank": rank_val,
             "range": self.range,
             "description": self.description,
         }

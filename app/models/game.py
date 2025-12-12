@@ -260,8 +260,10 @@ class Game(BaseModel):
         }
     
     def __str__(self) -> str:
-        return f"Game(id={self.id}, state={self.state.value}, players={len(self.players)})"
+        state_str = self.state.value if hasattr(self.state, 'value') else str(self.state)
+        return f"Game(id={self.id}, state={state_str}, players={len(self.players)})"
     
     def __repr__(self) -> str:
-        return f"Game(id={self.id}, state={self.state.value})"
+        state_str = self.state.value if hasattr(self.state, 'value') else str(self.state)
+        return f"Game(id={self.id}, state={state_str})"
 
