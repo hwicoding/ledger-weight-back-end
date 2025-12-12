@@ -29,13 +29,20 @@ jobs:
           # pytest tests/  # 테스트가 있다면
           echo "Tests passed"
       
+      - name: Connect to Tailscale
+        run: |
+          curl -fsSL https://tailscale.com/install.sh | sh
+          sudo tailscale up --authkey=${{ secrets.TS_AUTH_KEY }} --accept-routes
+          sleep 5
+          tailscale status
+      
       - name: Deploy to NAS Server
         uses: appleboy/ssh-action@v0.1.5
         with:
-          host: ${{ secrets.NAS_SERVER_HOST }}
+          host: 100.88.40.125
           username: ${{ secrets.NAS_SERVER_USER }}
           key: ${{ secrets.NAS_SERVER_SSH_KEY }}
-          port: ${{ secrets.NAS_SERVER_PORT }}
+          port: 22
           script: |
             cd /home/iwh/ledger-weight/ledger-weight-back-end
             git pull origin main
