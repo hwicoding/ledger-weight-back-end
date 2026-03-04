@@ -1,3 +1,114 @@
+#############################
+# ledger-weight-back-end
+# 최소한의 고효율 .gitignore
+# - 코드 / 규칙 / 문서 / 로그는 최대한 추적
+# - 진짜 필요 없는 캐시 / 가상환경 / OS 잡파일만 제외
+#############################
+
+########## Python: 바이트코드 / 빌드 산출물 ##########
+__pycache__/
+*.py[cod]
+*$py.class
+
+build/
+dist/
+*.egg-info/
+.eggs/
+wheels/
+share/python-wheels/
+*.egg
+MANIFEST
+
+
+########## 가상환경 / 환경 변수 ##########
+# 비밀 키가 들어가는 실제 환경 파일만 제외
+.env
+
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+
+########## 테스트 / 커버리지 / 도구 캐시 ##########
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache/
+.pytest_cache/
+.hypothesis/
+
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+.ruff_cache/
+
+.pdm-python
+.pdm-build/
+.pixi/
+__pypackages__/
+cython_debug/
+
+
+########## Jupyter / IPython (개발용) ##########
+.ipynb_checkpoints
+profile_default/
+ipython_config.py
+
+
+########## Cursor 설정 파일 ##########
+# 규칙(.cursor/rules)과 에이전트 문서, 로그 등은 저장소에 포함하고,
+# Cursor 인덱싱 설정 파일만 제외
+.cursorignore
+.cursorindexingignore
+
+
+########## OS 잡파일 (Windows / macOS 공통) ##########
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+
+########## 에디터 / IDE (원하면 공유 가능) ##########
+# 저장소에 개인 IDE 설정을 공유하고 싶다면
+# 아래 두 줄을 주석 처리해서 추적할 수 있습니다.
+.vscode/
+.idea/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

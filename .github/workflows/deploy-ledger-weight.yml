@@ -4,39 +4,56 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:  # 수동 실행 가능
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  deploy:
+  build-and-push:
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: read
+      packages: write
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      
-      - name: Setup Python
-        uses: actions/setup-python@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set short SHA
+        id: sha
+        run: echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
         with:
-          python-version: '3.12'
-      
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-      
-      - name: Run tests (if available)
-        run: |
-          # pytest tests/  # 테스트가 있다면
-          echo "Tests passed"
-      
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ env.SHORT_SHA }}
+
+  deploy-to-nas:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+
+    steps:
       - name: Connect to Tailscale
         run: |
           curl -fsSL https://tailscale.com/install.sh | sh
           sudo tailscale up --authkey=${{ secrets.TS_AUTH_KEY }} --accept-routes
           sleep 5
           tailscale status
-      
-      - name: Deploy to NAS Server
+
+      - name: Deploy on NAS (docker compose)
         uses: appleboy/ssh-action@v0.1.5
         with:
           host: 100.88.40.125
@@ -44,10 +61,7 @@ jobs:
           key: ${{ secrets.NAS_SERVER_SSH_KEY }}
           port: 22
           script: |
-            cd /home/iwh/ledger-weight/ledger-weight-back-end
-            git pull origin main
-            source venv/bin/activate
-            pip install -r requirements.txt
-            sudo systemctl restart ledger-weight-api
+            cd /home/iwh/ledger-weight
+            docker compose pull
+            docker compose up -d
             echo "Deployment completed at $(date)"
-

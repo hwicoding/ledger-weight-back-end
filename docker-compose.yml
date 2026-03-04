@@ -1,0 +1,14 @@
+# 서버(NAS)용 — /home/iwh/ledger-weight 에 이 파일과 .env 두고 사용
+# 실행: docker compose pull && docker compose up -d
+
+services:
+  ledger-weight-api:
+    image: ghcr.io/hwicoding/ledger-weight-back-end:latest
+    container_name: ledger-weight-api
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8088:8088"
+    env_file:
+      - .env
+    environment:
+      - PORT=8088

@@ -1,0 +1,30 @@
+# 가상환경·Git
+venv/
+.venv/
+.env
+.env.*
+!.env.example
+.git/
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.mypy_cache/
+.ruff_cache/
+
+# 문서·개발용 (이미지 경량화)
+docs/
+*.md
+.cursor/
+
+# 테스트 (프로덕션 이미지에서 제외 가능)
+tests/
+pytest.ini
+.pytest_cache/
+
+# 기타
+*.log
+.DS_Store

@@ -1,0 +1,24 @@
+---
+description: Python / FastAPI 코딩 및 API 규칙
+globs: "**/*.py"
+alwaysApply: false
+---
+
+# Python & FastAPI 규칙
+
+## 스타일
+- Python 3.10+ 문법 사용 (타입 힌트 권장).
+- 설정·상수: `app/config.py`의 `Settings`(pydantic-settings)와 `app/utils/constants.py` 활용.
+- 환경 변수는 `.env` + `env.example`에만 문서화, 레포에는 `.env` 커밋 금지.
+
+## FastAPI
+- 엔드포인트: 의존성·검증은 Pydantic 모델/Query·Path 활용.
+- WebSocket: `app/websocket/` 구조 유지, 메시지 처리는 message_handler·connection_manager에 위임.
+- 헬스: `GET /health` 유지 (배포·모니터링용).
+
+## 에러·로깅
+- 예외는 가능한 한 구체적으로 처리하고, 로그에 맥락(예: game_id, player) 포함.
+- 사용자 노출 메시지는 한글 가능, 로그/코드는 영문 유지.
+
+## 테스트
+- `tests/`에 있는 경우 pytest·pytest-asyncio 사용. 수정 시 기존 테스트 깨지지 않도록 할 것.
