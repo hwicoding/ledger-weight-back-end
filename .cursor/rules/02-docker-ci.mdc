@@ -17,6 +17,7 @@ alwaysApply: false
 - 환경: `env_file: .env`, `PORT=8088` 명시.
 
 ## GitHub Actions
+- 워크플로 파일: `back-end/ledger-weight-back-end/.github/workflows/deploy-ledger-weight.yml`.
 - main 푸시 시: Dockerfile 빌드 → GHCR 푸시 → NAS SSH로 `docker compose pull` & `up -d`.
 - Secrets: TS_AUTH_KEY, NAS_SERVER_USER, NAS_SERVER_SSH_KEY (값은 인프라 담당).
 - 배포 경로: 서버 `/home/iwh/ledger-weight` (docker-compose.yml, .env만 둠).
