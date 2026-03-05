@@ -12,7 +12,7 @@ alwaysApply: false
 - 이미지 경량화: .dockerignore로 venv, .git, .env, 문서/테스트 불필요 시 제외.
 
 ## docker-compose (서버용)
-- 서비스명: `ledger-weight-api`. 이미지: `ghcr.io/hwicoding/ledger-weight-back-end:latest`.
+- 서비스명: `ledger-weight-api`. 이미지: `ghcr.io/ehwiya/ledger-weight-back-end:latest`.
 - 포트: `127.0.0.1:8088:8088` (로컬만 노출, nginx 프록시용).
 - 환경: `env_file: .env`, `PORT=8088` 명시.
 
