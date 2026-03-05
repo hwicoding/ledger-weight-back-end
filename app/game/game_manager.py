@@ -231,11 +231,11 @@ class GameManager:
         game.state = GameState.IN_PROGRESS
         game.turn_number = 1
         
-        # 첫 번째 플레이어 설정 (상단주가 첫 턴)
-        sheriff = next((p for p in game.players if p.role.is_sheriff), None)
-        if sheriff:
-            game.current_player_id = sheriff.id
-            game.set_current_player(sheriff.id)
+        # 첫 번째 플레이어 설정 (역할과 무관하게 첫 번째 플레이어가 시작)
+        if game.players:
+            first_player = game.players[0]
+            game.current_player_id = first_player.id
+            game.set_current_player(first_player.id)
             game.set_turn_state(TurnState.DRAW)
         
         return True
@@ -296,13 +296,9 @@ class GameManager:
             # 나머지는 적도 세력으로 채움
             while len(roles) < player_count:
                 roles.append(RoleEnum.OUTLAW)
-        
-        # 역할 셔플 (상단주 제외)
-        roles_to_shuffle = [r for r in roles if r != RoleEnum.SHERIFF]
-        random.shuffle(roles_to_shuffle)
-        
-        # 상단주는 첫 번째 플레이어
-        final_roles = [RoleEnum.SHERIFF] + roles_to_shuffle
+        # 모든 역할 셔플 (상단주 고정 없음)
+        random.shuffle(roles)
+        final_roles = roles
         
         # 플레이어에게 역할 배정
         for i, player in enumerate(game.players):
@@ -392,15 +388,6 @@ class GameManager:
             return None
         
         alive_players = game.get_alive_players()
-        
-        if len(alive_players) == 0:
-            # 모두 사망 (무승부)
-            game.state = GameState.FINISHED
-            return {
-                "winner_id": None,
-                "winner_role": None,
-                "reason": "모든 플레이어가 사망했습니다.",
-            }
         
         # 상단주 확인
         sheriff = next((p for p in alive_players if p.role.is_sheriff), None)

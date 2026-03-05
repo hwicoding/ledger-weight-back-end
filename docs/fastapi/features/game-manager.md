@@ -30,12 +30,12 @@ def __init__(self):
 - Redis: 향후 확장 시 고려 가능
 
 ### 2. 역할 배정 방식
-**선택한 방식**: 플레이어 수에 따른 고정 역할 구성 + 랜덤 배정
+**선택한 방식**: 플레이어 수에 따른 고정 역할 구성 + **모든 플레이어 역할 완전 랜덤 배정**
 
 **이유**:
 - BANG! 게임 규칙 준수
 - 게임 밸런스 유지
-- 상단주는 항상 첫 번째 플레이어
+- 상단주 위치를 고정하지 않고, 모든 플레이어의 역할을 셔플하여 심리전/리플레이 가치를 높이기 위함
 
 **코드 예시**:
 ```python
@@ -47,11 +47,10 @@ def _assign_roles(self, game: Game) -> None:
     elif player_count == 5:
         roles = [SHERIFF, DEPUTY, OUTLAW, OUTLAW, RENEGADE]
     # ... 나머지 구성
-    
-    # 상단주는 첫 번째, 나머지는 랜덤 배정
-    roles_to_shuffle = [r for r in roles if r != SHERIFF]
-    random.shuffle(roles_to_shuffle)
-    final_roles = [SHERIFF] + roles_to_shuffle
+
+    # 모든 역할 완전 셔플 (상단주 고정 없음)
+    random.shuffle(roles)
+    final_roles = roles
 ```
 
 ### 3. 초기 카드 분배
@@ -80,9 +79,9 @@ def _deal_initial_cards(self, game: Game, card_manager: CardManager) -> None:
 - 승리 조건 명확화
 
 **승리 조건**:
-1. **상단주 팀 승리**: 적도 세력 모두 사망
-2. **적도 세력 승리**: 상단주 사망
-3. **야망가 승리**: 마지막까지 생존 (상단주와 1대1 상황)
+1. **상단주 팀 승리**: 상단주가 생존해 있고, 적도 세력이 모두 사망했으며, 상단주와 야망가의 1대1 상황이 아닌 경우
+2. **적도 세력 승리**: 상단주 사망 (야망가 생존 여부와 무관)
+3. **야망가 승리**: 적도 세력이 모두 사망한 상태에서, 상단주와 야망가만 1대1로 남아 있고, 야망가가 마지막까지 생존한 경우
 
 **코드 예시**:
 ```python
@@ -151,17 +150,16 @@ if win_info:
 ## 트러블슈팅
 
 ### 이슈: 역할 배정 시 상단주 위치
-**문제**: 상단주는 항상 첫 번째 플레이어여야 하는데, 랜덤 배정 시 위치가 바뀔 수 있음
+**문제**: 이전에는 상단주를 항상 첫 번째 플레이어에게 배정하여, 플레이어 순서와 역할이 강하게 연동되는 문제가 있었음
 
 **해결**: 
-- 상단주는 항상 첫 번째로 배정
-- 나머지 역할만 셔플하여 배정
+- 상단주를 포함한 모든 역할을 한 번에 셔플
+- 플레이어 순서(position)와 역할 배정을 분리하여, 어느 위치에도 상단주/적도 세력/야망가가 올 수 있도록 변경
 
 **코드**:
 ```python
-roles_to_shuffle = [r for r in roles if r != RoleEnum.SHERIFF]
-random.shuffle(roles_to_shuffle)
-final_roles = [RoleEnum.SHERIFF] + roles_to_shuffle
+random.shuffle(roles)
+final_roles = roles
 ```
 
 ### 이슈: 초기 재력 설정

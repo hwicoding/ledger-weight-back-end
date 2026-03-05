@@ -8,7 +8,7 @@ from typing import Optional, Dict, List
 from app.models.game import Game
 from app.models.player import Player
 from app.game.card_manager import CardManager
-from app.utils.constants import TurnState, GameState
+from app.utils.constants import TurnState, GameState, Suit
 
 
 class TurnManager:
@@ -46,9 +46,31 @@ class TurnManager:
         if self.game.state != GameState.IN_PROGRESS:
             return False
         
+        # 턴별 정산/보호 관련 상태 초기화
+        self.game.turn_attack_counters.clear()
+        self.game.defending_player_id = None
+        self.game.pending_required_missed = 1
+        self.game.pending_used_missed = 0
+        self.game.required_response = None
+        self.game.pending_action = None
+        
         # 현재 플레이어 설정
         self.game.set_current_player(player_id)
         self.game.set_turn_state(TurnState.DRAW)
+        
+        # 기록 파편 (페드로 라미레스):
+        # 내 턴 시작 시, 버려진 카드 더미 맨 위가 '돈' 문양이면 손패로 가져올 수 있음.
+        treasure = getattr(player, "treasure", None)
+        if treasure == "기록 파편":
+            top_card = self.card_manager.get_discard_top()
+            if top_card and top_card.suit == Suit.DIAMONDS:
+                taken = self.card_manager.take_discard_top()
+                if taken:
+                    player.add_card(taken)
+                    self.game.add_event(
+                        f"{player.name}이(가) 기록 파편 효과로 버림 더미에서 카드를 회수했습니다.",
+                        "action",
+                    )
         
         # 카드 드로우 단계로 이동
         return self.process_draw_phase(player_id)
@@ -73,8 +95,78 @@ class TurnManager:
         if not player or not player.is_alive:
             return False
         
-        # 기본 드로우: 2장
-        cards_drawn = self.draw_cards_for_player(player_id, 2)
+        # 기본 드로우/보물 효과 처리
+        treasure = getattr(player, "treasure", None)
+        cards_drawn: List = []
+        
+        # 우선 전표 (킷 카를슨): 덱 상단 3장 보고 1장 선택, 1장은 맨 위, 1장은 맨 아래
+        if treasure == "우선 전표":
+            # 덱에서 최대 3장까지 임시로 뽑음
+            temp_cards: List = []
+            for _ in range(3):
+                if self.card_manager.get_deck_count() == 0:
+                    self.card_manager.reshuffle_discard_pile()
+                    if self.card_manager.get_deck_count() == 0:
+                        break
+                card = self.card_manager.draw_card()
+                if not card:
+                    break
+                temp_cards.append(card)
+            
+            if not temp_cards:
+                # 덱이 비어있으면 기본 드로우도 불가, 그냥 종료
+                return True
+            
+            # 서버 내부 컨텍스트 저장
+            self.game.pending_action = {
+                "type": "SELECT_DRAW_ORDER",
+                "player_id": player_id,
+                "cards": temp_cards,
+            }
+            
+            # 클라이언트에 노출할 후보 카드 정보 구성
+            candidate_cards = []
+            for c in temp_cards:
+                suit_val = c.suit.value if (c.suit and hasattr(c.suit, "value")) else (c.suit if c.suit else None)
+                rank_val = c.rank.value if (c.rank and hasattr(c.rank, "value")) else (c.rank if c.rank else None)
+                candidate_cards.append(
+                    {
+                        "id": c.id,
+                        "name": c.name,
+                        "suit": suit_val,
+                        "rank": rank_val,
+                    }
+                )
+            
+            self.game.required_response = {
+                "type": "SELECT_DRAW_ORDER",
+                "source": "우선 전표",
+                "candidateCards": candidate_cards,
+            }
+            
+            # 드로우 단계 유지, 선택 응답을 기다림
+            return True
+        
+        if treasure == "황금 주판":
+            # 황금 주판 (블랙 잭):
+            # 두 번째 드로우 카드가 '돈' 문양이면 1장 더 드로우 (공개).
+            first = self.draw_cards_for_player(player_id, 1)
+            second = self.draw_cards_for_player(player_id, 1)
+            cards_drawn.extend(first)
+            cards_drawn.extend(second)
+            
+            second_card = second[0] if second else None
+            if second_card and second_card.suit == Suit.DIAMONDS:
+                extra = self.draw_cards_for_player(player_id, 1)
+                cards_drawn.extend(extra)
+                if extra:
+                    self.game.add_event(
+                        f"{player.name}의 황금 주판 효과로 추가로 카드를 1장 공개 드로우했습니다.",
+                        "action",
+                    )
+        else:
+            # 기본 드로우: 2장
+            cards_drawn = self.draw_cards_for_player(player_id, 2)
         
         if cards_drawn:
             self.game.add_event(f"{player.name}이(가) 카드 {len(cards_drawn)}장을 뽑았습니다.", "action")
@@ -241,7 +333,7 @@ class TurnManager:
         
         return True
     
-    def set_respond_phase(self, player_id: str) -> bool:
+    def set_respond_phase(self, player_id: str, required_missed: int = 1) -> bool:
         """
         대응 단계로 설정합니다 (공격 받을 때).
         
@@ -256,6 +348,17 @@ class TurnManager:
             return False
         
         self.game.set_turn_state(TurnState.RESPOND)
+        self.game.defending_player_id = player_id
+        self.game.pending_required_missed = max(1, required_missed)
+        self.game.pending_used_missed = 0
+        # 프론트에 전달할 응답 정보 설정
+        self.game.required_response = {
+            "type": "RESPOND_ATTACK",
+            "targetId": player_id,
+            "requiredMissed": self.game.pending_required_missed,
+            "usedMissed": 0,
+            "message": f"{player.name}이(가) 공격을 받았습니다. 회피하시겠습니까?",
+        }
         return True
     
     def return_to_play_phase(self) -> bool:
@@ -268,7 +371,13 @@ class TurnManager:
         if not self.game.current_player_id:
             return False
         
+        # 대응 관련 상태 초기화
         self.game.set_turn_state(TurnState.PLAY_CARD)
+        self.game.defending_player_id = None
+        self.game.pending_required_missed = 1
+        self.game.pending_used_missed = 0
+        self.game.required_response = None
+        self.game.pending_action = None
         return True
     
     def get_turn_info(self) -> Dict:

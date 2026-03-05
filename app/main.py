@@ -4,12 +4,15 @@ FastAPI 애플리케이션 진입점
 
 import json
 import uuid
+from datetime import datetime, timezone
+from typing import Optional
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.game.game_manager import GameManager
 from app.websocket.connection_manager import ConnectionManager
 from app.websocket.message_handler import MessageHandler
+from app.security.auth import get_player_id_from_token
 
 # FastAPI 앱 생성
 app = FastAPI(
@@ -55,7 +58,10 @@ async def health_check():
 async def lobby_websocket_endpoint(
     websocket: WebSocket,
     game_id: str,
-    player: str = Query(..., description="플레이어 이름")
+    player: str = Query(..., description="플레이어 이름"),
+    token: Optional[str] = Query(
+        default=None, description="인증 토큰 (선택, JWT 등)"
+    ),
 ):
     """
     로비 WebSocket 엔드포인트
@@ -68,8 +74,11 @@ async def lobby_websocket_endpoint(
         game_id: 게임 ID
         player: 플레이어 이름 (쿼리 파라미터)
     """
-    # 플레이어 ID 자동 생성 (UUID)
-    player_id = str(uuid.uuid4())
+    # 토큰 기반 플레이어 ID 추출 (있다면 우선 사용)
+    player_id_from_token = get_player_id_from_token(token)
+
+    # 플레이어 ID 자동 생성 (UUID, 토큰이 없거나 유효하지 않은 경우)
+    player_id = player_id_from_token or str(uuid.uuid4())
     
     # 연결 수락
     success = await connection_manager.connect(websocket, player_id)
@@ -105,6 +114,7 @@ async def lobby_websocket_endpoint(
             await connection_manager.send_personal_message(
                 {
                     "type": "ERROR",
+                    "code": join_result.get("error_code", "JOIN_GAME_FAILED"),
                     "message": join_result.get("message", "게임 참가에 실패했습니다."),
                 },
                 player_id,
@@ -118,7 +128,18 @@ async def lobby_websocket_endpoint(
                 # 메시지 수신
                 data = await websocket.receive_text()
                 message = json.loads(data)
-                
+
+                # 하트비트(PING) 메시지 처리
+                if message.get("type") == "PING":
+                    await connection_manager.send_personal_message(
+                        {
+                            "type": "PONG",
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
+                        },
+                        player_id,
+                    )
+                    continue
+
                 # 메시지 처리
                 result = await message_handler.handle_message(player_id, message)
                 
@@ -136,6 +157,7 @@ async def lobby_websocket_endpoint(
                 await connection_manager.send_personal_message(
                     {
                         "type": "ERROR",
+                        "code": "INVALID_JSON",
                         "message": "잘못된 JSON 형식입니다.",
                     },
                     player_id,
@@ -153,7 +175,13 @@ async def lobby_websocket_endpoint(
 
 
 @app.websocket("/ws/{player_id}")
-async def websocket_endpoint(websocket: WebSocket, player_id: str):
+async def websocket_endpoint(
+    websocket: WebSocket,
+    player_id: str,
+    token: Optional[str] = Query(
+        default=None, description="인증 토큰 (선택, JWT 등)"
+    ),
+):
     """
     WebSocket 엔드포인트 (기존 호환성 유지)
     
@@ -161,6 +189,19 @@ async def websocket_endpoint(websocket: WebSocket, player_id: str):
         websocket: WebSocket 연결
         player_id: 플레이어 ID
     """
+    # 토큰이 있는 경우, 토큰 기반 플레이어 ID와 경로 파라미터 일치 여부 확인
+    auth_player_id = get_player_id_from_token(token)
+    if auth_player_id is not None and auth_player_id != player_id:
+        await websocket.close(
+            code=1008,
+            reason="인증 실패: 플레이어 ID가 토큰과 일치하지 않습니다.",
+        )
+        return
+
+    # 경로 파라미터 대신 토큰에서 추출한 ID를 우선 사용
+    if auth_player_id:
+        player_id = auth_player_id
+
     # 연결 수락
     success = await connection_manager.connect(websocket, player_id)
     if not success:
@@ -184,7 +225,18 @@ async def websocket_endpoint(websocket: WebSocket, player_id: str):
                 # 메시지 수신
                 data = await websocket.receive_text()
                 message = json.loads(data)
-                
+
+                # 하트비트(PING) 메시지 처리
+                if message.get("type") == "PING":
+                    await connection_manager.send_personal_message(
+                        {
+                            "type": "PONG",
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
+                        },
+                        player_id,
+                    )
+                    continue
+
                 # 메시지 처리
                 result = await message_handler.handle_message(player_id, message)
                 
@@ -202,6 +254,7 @@ async def websocket_endpoint(websocket: WebSocket, player_id: str):
                 await connection_manager.send_personal_message(
                     {
                         "type": "ERROR",
+                        "code": "INVALID_JSON",
                         "message": "잘못된 JSON 형식입니다.",
                     },
                     player_id,

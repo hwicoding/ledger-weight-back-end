@@ -144,6 +144,17 @@ class CardManager:
             return None
         return self.discard_pile[-1]
     
+    def take_discard_top(self) -> Optional[Card]:
+        """
+        버림 더미의 맨 위 카드를 제거하며 반환합니다.
+        
+        Returns:
+            버림 더미 맨 위 카드 (없으면 None)
+        """
+        if not self.discard_pile:
+            return None
+        return self.discard_pile.pop()
+    
     def reshuffle_discard_pile(self) -> None:
         """
         버림 더미를 덱으로 재생성합니다.
@@ -176,6 +187,15 @@ class CardManager:
             덱의 카드 수
         """
         return len(self.deck)
+    
+    def put_card_to_bottom(self, card: Card) -> None:
+        """
+        카드를 덱 맨 아래에 넣습니다.
+        
+        Args:
+            card: 덱 맨 아래로 보낼 카드
+        """
+        self.deck.append(card)
     
     def get_discard_count(self) -> int:
         """

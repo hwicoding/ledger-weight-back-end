@@ -85,17 +85,30 @@ class ActionType(str, Enum):
     RESPOND_ATTACK = "RESPOND_ATTACK"  # 공격 대응
     END_TURN = "END_TURN"  # 턴 종료
     DRAW_CARD = "DRAW_CARD"  # 카드 뽑기
+    USE_TREASURE = "USE_TREASURE"  # 보물 사용 (능동형)
+    SELECT_STEAL_CARD = "SELECT_STEAL_CARD"  # 천청 방울: 강탈 카드 선택
+    SELECT_DRAW_ORDER = "SELECT_DRAW_ORDER"  # 우선 전표: 드로우/위/아래 배치 선택
 
 
 # ==================== 보물 (Treasure) ====================
-# 보물 이름 상수
+# 보물 이름 상수 (보물 명칭 -> 원작 캐릭터)
 TREASURE_NAMES = {
-    "거대 금고": "Willy the Kid",  # 턴당 정산 무제한
-    "협상 증표": "Calamity Janet",  # 정산 ↔ 회피 상호 전환
-    "비밀 장부": "Sid Ketchum",  # 카드 2장으로 재력 1 회복
-    "비전서": "Black Jack",  # 드로우 시 첫 카드가 치유/돈이면 추가 드로우
-    "비밀 창고": "Jourdonnais",  # 공격 시 카드 뽑기 성공 시 피해 무효화
-    # TODO: 나머지 11개 보물 추가
+    "만능 통보": "Lucky Duke",  # 판정 시 카드 2장 중 유리한 쪽 선택
+    "천청 방울": "Jesse James",  # 강탈(뽑기) 강화
+    "만국 지도": "Rose Doolan",  # 모든 상대와의 거리 -1
+    "안개 병풍": "Paul Regret",  # 다른 플레이어가 나를 볼 때 거리 +1
+    "비단 갑옷": "Jourdonnais",  # 판정 문양 '검'이면 자동 회피 + 드로우
+    "응징의 패": "El Gringo",  # 피해를 입혔을 때 역강탈
+    "화수분": "Suzy Lafayette",  # 손패 0장이 되는 즉시 2장 드로우
+    "반전 금화": "Calamity Janet",  # 정산 ↔ 회피 교차 사용
+    "이중 장부": "Bart Cassidy",  # 재력 손실 시 드로우 (턴당 2회 제한)
+    "우선 전표": "Kit Carlson",  # 덱 상단 3장 조작
+    "유산 상자": "Vulture Sam",  # 탈락자 카드/보물 획득
+    "기록 파편": "Pedro Ramirez",  # 버림 더미 상단이 '돈'이면 턴 시작 시 회수
+    "낙인 인장": "Slab the Killer",  # 내 정산 방어에 회피 2장 필요 (조건부)
+    "황금 연갑": "Willy the Kid",  # 턴당 정산 무제한 (추가 코스트)
+    "생명 장부": "Sid Ketchum",  # 서로 다른 문양 2장 버리고 재력 1 회복
+    "황금 주판": "Black Jack",  # 두 번째 드로우 카드가 '돈'이면 1장 추가 드로우
 }
 
 # ==================== 게임 규칙 상수 ====================

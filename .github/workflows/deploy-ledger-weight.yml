@@ -8,7 +8,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ehwiya/ledger-weight-back-end
+  IMAGE_NAME: hwicoding/ledger-weight-back-end
 
 jobs:
   build-and-push:
@@ -62,6 +62,7 @@ jobs:
           port: 22
           script: |
             cd /home/iwh/ledger-weight
-            docker compose pull
-            docker compose up -d
+            docker compose pull ledger-weight-api
+            docker compose up -d ledger-weight-api
+            docker compose ps
             echo "Deployment completed at $(date)"

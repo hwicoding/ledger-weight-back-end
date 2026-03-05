@@ -26,6 +26,34 @@ class Game(BaseModel):
     turn_number: int = Field(0, description="턴 번호")
     last_event: Optional[str] = Field(None, description="마지막 이벤트 메시지")
     events: List[Dict] = Field(default_factory=list, description="게임 이벤트 로그 (최근 50개)")
+    treasure_counters: Dict[str, Dict[str, int]] = Field(
+        default_factory=dict,
+        description="보물 효과 카운터 (플레이어별)",
+    )
+    turn_attack_counters: Dict[str, int] = Field(
+        default_factory=dict,
+        description="플레이어별 이번 턴 정산 사용 횟수",
+    )
+    defending_player_id: Optional[str] = Field(
+        None,
+        description="현재 공격에 대해 방어해야 하는 플레이어 ID",
+    )
+    pending_required_missed: int = Field(
+        1,
+        description="현재 공격에 대해 필요한 회피 카드 수 (낙인 인장 등 보물 적용 후)",
+    )
+    pending_used_missed: int = Field(
+        0,
+        description="현재 공격에 대해 이미 사용한 회피 카드 수",
+    )
+    required_response: Optional[Dict] = Field(
+        None,
+        description="프론트엔드에 요청할 응답 정보 (requiredResponse)",
+    )
+    pending_action: Optional[Dict] = Field(
+        None,
+        description="선택 응답이 필요한 액션의 서버 내부 컨텍스트",
+    )
     
     class Config:
         arbitrary_types_allowed = True
@@ -133,9 +161,14 @@ class Game(BaseModel):
         """
         두 플레이어 간의 거리를 계산합니다.
         
+        - 기본적으로 테이블을 원형으로 보고 위치 차이로 거리를 계산합니다.
+        - 보물 효과:
+          - 만국 지도(공격자): 모든 상대와의 거리 -1
+          - 안개 병풍(방어자): 다른 플레이어가 나를 볼 때 거리 +1
+        
         Args:
-            from_player: 출발 플레이어
-            to_player: 도착 플레이어
+            from_player: 출발 플레이어 (공격자 등)
+            to_player: 도착 플레이어 (대상)
             
         Returns:
             거리 (최소 1)
@@ -148,6 +181,16 @@ class Game(BaseModel):
         
         # 원형 구조이므로 양방향 거리 중 작은 값
         distance = min(pos_diff, total_players - pos_diff)
+        
+        # 보물 효과 적용
+        # 만국 지도: 공격자가 보는 모든 거리를 1 감소
+        if getattr(from_player, "treasure", None) == "만국 지도":
+            distance -= 1
+        
+        # 안개 병풍: 다른 플레이어가 나를 볼 때 거리를 1 증가
+        if getattr(to_player, "treasure", None) == "안개 병풍":
+            distance += 1
+        
         return max(1, distance)  # 최소 거리는 1
     
     def draw_card(self, player_id: str) -> Optional[Card]:
@@ -231,21 +274,9 @@ class Game(BaseModel):
             "timeLeft": 60,  # TODO: 실제 타이머 구현 시 수정
         }
         
-        # requiredResponse 설정 (대응 단계일 때)
-        # TODO: 공격을 받은 플레이어를 정확히 추적하기 위해 Game 모델에 defending_player_id 필드 추가 필요
-        if self.turn_state == TurnState.RESPOND:
-            # 대응해야 할 플레이어 찾기 (현재 턴 플레이어가 아닌 생존 플레이어)
-            responding_player = None
-            for player in self.players:
-                if player.is_alive and (not self.current_player_id or player.id != self.current_player_id):
-                    responding_player = player
-                    break
-            
-            if responding_player:
-                turn_state["requiredResponse"] = {
-                    "type": "RESPOND_ATTACK",
-                    "message": f"{responding_player.name}이(가) 공격을 받았습니다. 회피하시겠습니까?",
-                }
+        # requiredResponse 설정 (모든 유형 공통)
+        if self.required_response:
+            turn_state["requiredResponse"] = self.required_response
         
         return {
             "gameId": self.id,

@@ -35,6 +35,23 @@ class MessageHandler:
         """
         self.game_manager = game_manager
         self.connection_manager = connection_manager
+
+    def _error(self, message: str, code: str = "BAD_REQUEST") -> Dict:
+        """
+        표준화된 에러 응답을 생성합니다.
+
+        Args:
+            message: 에러 메시지
+            code: 에러 코드 (클라이언트에서 분기 처리용)
+
+        Returns:
+            에러 응답 딕셔너리
+        """
+        return {
+            "success": False,
+            "message": message,
+            "error_code": code,
+        }
     
     async def handle_message(self, player_id: str, message: dict) -> Dict:
         """
@@ -61,19 +78,19 @@ class MessageHandler:
             elif message_type == "ADD_AI_PLAYER":
                 return await self.handle_add_ai_player(player_id, message)
             else:
-                return {
-                    "success": False,
-                    "message": f"지원하지 않는 메시지 타입: {message_type}",
-                }
+                return self._error(
+                    message=f"지원하지 않는 메시지 타입: {message_type}",
+                    code="UNSUPPORTED_MESSAGE_TYPE",
+                )
         except Exception as e:
             # 예외 발생 시 에러 메시지 반환
             import traceback
             print(f"[ERROR] handle_message 예외 발생: {type(e).__name__}: {e}")
             traceback.print_exc()
-            return {
-                "success": False,
-                "message": f"메시지 처리 중 오류가 발생했습니다: {str(e)}",
-            }
+            return self._error(
+                message="메시지 처리 중 서버 내부 오류가 발생했습니다.",
+                code="INTERNAL_ERROR",
+            )
     
     async def handle_player_action(self, player_id: str, message: dict) -> Dict:
         """
@@ -96,17 +113,17 @@ class MessageHandler:
         """
         game_id = self.connection_manager.get_player_game(player_id)
         if not game_id:
-            return {
-                "success": False,
-                "message": "플레이어가 게임에 참여하지 않았습니다.",
-            }
+            return self._error(
+                message="플레이어가 게임에 참여하지 않았습니다.",
+                code="PLAYER_NOT_IN_GAME",
+            )
         
         game = self.game_manager.get_game(game_id)
         if not game:
-            return {
-                "success": False,
-                "message": "게임을 찾을 수 없습니다.",
-            }
+            return self._error(
+                message="게임을 찾을 수 없습니다.",
+                code="GAME_NOT_FOUND",
+            )
         
         # 게임 로직 컴포넌트 생성
         from app.game.card_manager import CardManager
@@ -120,19 +137,19 @@ class MessageHandler:
         # 새로운 메시지 형식 파싱
         action = message.get("action", {})
         if not action:
-            return {
-                "success": False,
-                "message": "액션 정보가 필요합니다.",
-            }
+            return self._error(
+                message="액션 정보가 필요합니다.",
+                code="ACTION_REQUIRED",
+            )
         
         action_type_str = action.get("type")
         try:
             action_type = ActionType(action_type_str)
         except ValueError:
-            return {
-                "success": False,
-                "message": f"잘못된 액션 타입: {action_type_str}",
-            }
+            return self._error(
+                message=f"잘못된 액션 타입: {action_type_str}",
+                code="INVALID_ACTION_TYPE",
+            )
         
         # 액션 타입별 데이터 변환 (기존 ActionHandler 형식으로)
         if action_type == ActionType.USE_CARD:
@@ -153,18 +170,36 @@ class MessageHandler:
                 # 포기 - handle_respond_attack_failed 호출
                 result = action_handler.handle_respond_attack_failed(player_id)
             else:
-                return {
-                    "success": False,
-                    "message": f"잘못된 응답 타입: {response}",
-                }
+                return self._error(
+                    message=f"잘못된 응답 타입: {response}",
+                    code="INVALID_RESPONSE_TYPE",
+                )
         elif action_type == ActionType.END_TURN:
             data = {}
             result = action_handler.handle_action(action_type, player_id, data)
-        else:
-            return {
-                "success": False,
-                "message": f"지원하지 않는 액션 타입: {action_type_str}",
+        elif action_type == ActionType.USE_TREASURE:
+            data = {
+                "treasure": action.get("treasure"),
+                "card_ids": action.get("cardIds") or [],
             }
+            result = action_handler.handle_action(action_type, player_id, data)
+        elif action_type == ActionType.SELECT_STEAL_CARD:
+            data = {
+                "card_id": action.get("cardId"),
+            }
+            result = action_handler.handle_action(action_type, player_id, data)
+        elif action_type == ActionType.SELECT_DRAW_ORDER:
+            data = {
+                "take_card_id": action.get("takeCardId"),
+                "top_card_id": action.get("topCardId"),
+                "bottom_card_id": action.get("bottomCardId"),
+            }
+            result = action_handler.handle_action(action_type, player_id, data)
+        else:
+            return self._error(
+                message=f"지원하지 않는 액션 타입: {action_type_str}",
+                code="UNSUPPORTED_ACTION_TYPE",
+            )
         
         # 게임 상태 업데이트 전송
         if result.get("success"):
@@ -197,10 +232,10 @@ class MessageHandler:
         player_name = message.get("player_name", f"Player_{player_id}")
         
         if not game_id:
-            return {
-                "success": False,
-                "message": "게임 ID가 필요합니다.",
-            }
+            return self._error(
+                message="게임 ID가 필요합니다.",
+                code="GAME_ID_REQUIRED",
+            )
         
         # 게임 조회 또는 생성
         game = self.game_manager.get_game(game_id)
@@ -213,10 +248,10 @@ class MessageHandler:
         )
         
         if not success:
-            return {
-                "success": False,
-                "message": "게임에 참여할 수 없습니다.",
-            }
+            return self._error(
+                message="게임에 참여할 수 없습니다.",
+                code="JOIN_GAME_FAILED",
+            )
         
         # 연결 관리자에 등록
         self.connection_manager.register_player_to_game(player_id, game_id)
@@ -248,10 +283,10 @@ class MessageHandler:
         """
         game_id = self.connection_manager.get_player_game(player_id)
         if not game_id:
-            return {
-                "success": False,
-                "message": "플레이어가 게임에 참여하지 않았습니다.",
-            }
+            return self._error(
+                message="플레이어가 게임에 참여하지 않았습니다.",
+                code="PLAYER_NOT_IN_GAME",
+            )
         
         await self.send_game_state_to_player(player_id, game_id)
         
@@ -279,25 +314,25 @@ class MessageHandler:
         if not game_id:
             game_id = self.connection_manager.get_player_game(player_id)
             if not game_id:
-                return {
-                    "success": False,
-                    "message": "게임 ID가 필요하거나 플레이어가 게임에 참여하지 않았습니다.",
-                }
+                return self._error(
+                    message="게임 ID가 필요하거나 플레이어가 게임에 참여하지 않았습니다.",
+                    code="GAME_ID_OR_PLAYER_REQUIRED",
+                )
         
         # 게임 조회
         game = self.game_manager.get_game(game_id)
         if not game:
-            return {
-                "success": False,
-                "message": "게임을 찾을 수 없습니다.",
-            }
+            return self._error(
+                message="게임을 찾을 수 없습니다.",
+                code="GAME_NOT_FOUND",
+            )
         
         # 플레이어가 게임에 참여했는지 확인
         if not any(p.id == player_id for p in game.players):
-            return {
-                "success": False,
-                "message": "플레이어가 이 게임에 참여하지 않았습니다.",
-            }
+            return self._error(
+                message="플레이어가 이 게임에 참여하지 않았습니다.",
+                code="PLAYER_NOT_IN_GAME",
+            )
         
         # 게임 시작 시도
         success = self.game_manager.start_game(game_id)
@@ -305,20 +340,23 @@ class MessageHandler:
         if not success:
             # 실패 원인 확인
             if game.state != GameState.WAITING:
-                return {
-                    "success": False,
-                    "message": "게임이 이미 시작되었거나 종료되었습니다.",
-                }
+                return self._error(
+                    message="게임이 이미 시작되었거나 종료되었습니다.",
+                    code="GAME_ALREADY_STARTED",
+                )
             elif len(game.players) < MIN_PLAYERS:
-                return {
-                    "success": False,
-                    "message": f"게임을 시작하려면 최소 {MIN_PLAYERS}명의 플레이어가 필요합니다. (현재: {len(game.players)}명)",
-                }
+                return self._error(
+                    message=(
+                        f"게임을 시작하려면 최소 {MIN_PLAYERS}명의 플레이어가 필요합니다. "
+                        f"(현재: {len(game.players)}명)"
+                    ),
+                    code="NOT_ENOUGH_PLAYERS",
+                )
             else:
-                return {
-                    "success": False,
-                    "message": "게임을 시작할 수 없습니다.",
-                }
+                return self._error(
+                    message="게임을 시작할 수 없습니다.",
+                    code="START_GAME_FAILED",
+                )
         
         # 게임 시작 이벤트 로그 추가
         game = self.game_manager.get_game(game_id)  # 업데이트된 게임 상태 가져오기
@@ -357,47 +395,47 @@ class MessageHandler:
         if not game_id:
             game_id = self.connection_manager.get_player_game(player_id)
             if not game_id:
-                return {
-                    "success": False,
-                    "message": "게임 ID가 필요하거나 플레이어가 게임에 참여하지 않았습니다.",
-                }
+                return self._error(
+                    message="게임 ID가 필요하거나 플레이어가 게임에 참여하지 않았습니다.",
+                    code="GAME_ID_OR_PLAYER_REQUIRED",
+                )
         
         # 게임 조회
         game = self.game_manager.get_game(game_id)
         if not game:
-            return {
-                "success": False,
-                "message": "게임을 찾을 수 없습니다.",
-            }
+            return self._error(
+                message="게임을 찾을 수 없습니다.",
+                code="GAME_NOT_FOUND",
+            )
         
         # 플레이어가 게임에 참여했는지 확인
         if not any(p.id == player_id for p in game.players):
-            return {
-                "success": False,
-                "message": "플레이어가 이 게임에 참여하지 않았습니다.",
-            }
+            return self._error(
+                message="플레이어가 이 게임에 참여하지 않았습니다.",
+                code="PLAYER_NOT_IN_GAME",
+            )
         
         # count 확인
         count = message.get("count", 1)
         if not isinstance(count, int) or count <= 0:
-            return {
-                "success": False,
-                "message": "AI 플레이어 수는 1 이상의 정수여야 합니다.",
-            }
+            return self._error(
+                message="AI 플레이어 수는 1 이상의 정수여야 합니다.",
+                code="INVALID_AI_COUNT",
+            )
         
         if count > MAX_PLAYERS:
-            return {
-                "success": False,
-                "message": f"AI 플레이어 수는 최대 {MAX_PLAYERS}명까지 추가할 수 있습니다.",
-            }
+            return self._error(
+                message=f"AI 플레이어 수는 최대 {MAX_PLAYERS}명까지 추가할 수 있습니다.",
+                code="AI_COUNT_EXCEEDS_MAX",
+            )
         
         # difficulty 확인
         difficulty = message.get("difficulty", "medium")
         if difficulty not in ["easy", "medium", "hard"]:
-            return {
-                "success": False,
-                "message": "난이도는 'easy', 'medium', 'hard' 중 하나여야 합니다.",
-            }
+            return self._error(
+                message="난이도는 'easy', 'medium', 'hard' 중 하나여야 합니다.",
+                code="INVALID_AI_DIFFICULTY",
+            )
         
         # AI 플레이어 추가
         result = self.game_manager.add_ai_players_to_game(
@@ -407,10 +445,10 @@ class MessageHandler:
         )
         
         if not result.get("success"):
-            return {
-                "success": False,
-                "message": result.get("message", "AI 플레이어 추가에 실패했습니다."),
-            }
+            return self._error(
+                message=result.get("message", "AI 플레이어 추가에 실패했습니다."),
+                code="ADD_AI_FAILED",
+            )
         
         # 모든 플레이어에게 게임 상태 전송
         await self.broadcast_game_state(game_id)

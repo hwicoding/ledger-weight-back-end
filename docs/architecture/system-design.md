@@ -112,7 +112,7 @@ class ConnectionManager:
             "hp": 5,
             "range": 1,
             "hand_count": 5,
-            "treasure": "거대 금고"
+            "treasure": "황금 연갑"
         }
     ],
     "event": "플레이어 1이 정산 카드를 사용했습니다"
