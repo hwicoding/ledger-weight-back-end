@@ -1,5 +1,8 @@
 """
-애플리케이션 설정 관리
+애플리케이션 설정 관리.
+
+.env 로드는 pydantic_settings.BaseSettings가 수행합니다.
+python-dotenv는 별도 로드가 필요할 때만 사용하면 됩니다.
 """
 
 from pydantic_settings import BaseSettings

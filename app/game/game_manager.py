@@ -6,7 +6,7 @@
 
 import uuid
 import random
-from typing import List, Dict, Optional
+from typing import Any, Dict, List, Optional
 from app.models.game import Game
 from app.models.player import Player
 from app.models.card import Card
@@ -368,7 +368,7 @@ class GameManager:
             return True
         return False
     
-    def check_win_condition(self, game_id: str) -> Optional[Dict[str, any]]:
+    def check_win_condition(self, game_id: str) -> Optional[Dict[str, Any]]:
         """
         승리 조건을 체크합니다.
         
@@ -448,7 +448,7 @@ class GameManager:
         
         return game.to_dict(player_id=player_id)
     
-    def list_games(self) -> List[Dict[str, any]]:
+    def list_games(self) -> List[Dict[str, Any]]:
         """
         모든 게임 목록을 반환합니다.
         

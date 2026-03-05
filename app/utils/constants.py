@@ -3,7 +3,9 @@
 """
 
 from enum import Enum
-from typing import Dict, List
+from typing import Any, Dict, List
+
+from app.config import settings
 
 # ==================== 역할 (Role) ====================
 class Role(str, Enum):
@@ -122,14 +124,11 @@ INITIAL_HP = {
 
 DEFAULT_RANGE = 1  # 기본 영향력 (사거리)
 
-# ==================== 게임 설정 ====================
-# 플레이어 수 제한
-MIN_PLAYERS: int = 4
-MAX_PLAYERS: int = 7
-
-# WebSocket 설정
-WS_MAX_CONNECTIONS: int = 100
-WS_HEARTBEAT_INTERVAL: int = 30
+# ==================== 게임 설정 (config에서 로드) ====================
+MIN_PLAYERS: int = settings.MIN_PLAYERS
+MAX_PLAYERS: int = settings.MAX_PLAYERS
+WS_MAX_CONNECTIONS: int = settings.WS_MAX_CONNECTIONS
+WS_HEARTBEAT_INTERVAL: int = settings.WS_HEARTBEAT_INTERVAL
 
 # ==================== 카드 덱 구성 ====================
 # BANG! 게임 규칙 기반 카드 덱 구성
@@ -161,7 +160,7 @@ CARD_DECK_CONFIG: Dict[CardType, int] = {
 }
 
 # 카드별 상세 정보 (이름, 설명, 영향력 등)
-CARD_DETAILS: Dict[CardType, Dict[str, any]] = {
+CARD_DETAILS: Dict[CardType, Dict[str, Any]] = {
     CardType.BANG: {
         "name": "정산",
         "description": "기본 공격 카드. 대상에게 재력 1 피해를 입힙니다.",

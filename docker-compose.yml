@@ -3,7 +3,7 @@
 
 services:
   ledger-weight-api:
-    image: ghcr.io/hwicoding/ledger-weight-back-end:latest
+    image: ghcr.io/ehwiya/ledger-weight-back-end:latest
     container_name: ledger-weight-api
     restart: unless-stopped
     ports:

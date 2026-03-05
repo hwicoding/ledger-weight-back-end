@@ -12,6 +12,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 앱 코드 복사
 COPY . .
 
+# non-root 사용자로 실행 (권한 최소화)
+RUN adduser --disabled-password --gecos "" appuser && chown -R appuser:appuser /app
+USER appuser
+
 # 앱은 settings.PORT를 사용. 기본 8088로 노출
 ENV PORT=8088
 EXPOSE 8088

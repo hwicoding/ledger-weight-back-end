@@ -6,8 +6,9 @@ import json
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query
+from fastapi import FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from app.config import settings
 from app.game.game_manager import GameManager
 from app.websocket.connection_manager import ConnectionManager
@@ -38,6 +39,24 @@ connection_manager = ConnectionManager()
 message_handler = MessageHandler(game_manager, connection_manager)
 
 
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
+    """HTTPException을 JSON 응답으로 통일."""
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+    )
+
+
+@app.exception_handler(Exception)
+async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """미처리 예외를 500 응답으로 통일 (상세 노출 방지)."""
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
+    )
+
+
 @app.get("/")
 async def root():
     """루트 엔드포인트"""
@@ -52,6 +71,45 @@ async def root():
 async def health_check():
     """헬스 체크 엔드포인트"""
     return {"status": "healthy"}
+
+
+async def run_ws_message_loop(
+    websocket: WebSocket,
+    player_id: str,
+    connection_manager: ConnectionManager,
+    message_handler: MessageHandler,
+) -> None:
+    """WebSocket 메시지 수신 루프 (PING/PONG, handle_message, ERROR 응답)."""
+    while True:
+        try:
+            data = await websocket.receive_text()
+            message = json.loads(data)
+            if message.get("type") == "PING":
+                await connection_manager.send_personal_message(
+                    {
+                        "type": "PONG",
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    },
+                    player_id,
+                )
+                continue
+            result = await message_handler.handle_message(player_id, message)
+            if result.get("success") is not None:
+                await connection_manager.send_personal_message(
+                    {"type": "ACTION_RESPONSE", "data": result},
+                    player_id,
+                )
+        except json.JSONDecodeError:
+            await connection_manager.send_personal_message(
+                {
+                    "type": "ERROR",
+                    "code": "INVALID_JSON",
+                    "message": "잘못된 JSON 형식입니다.",
+                },
+                player_id,
+            )
+        except WebSocketDisconnect:
+            break
 
 
 @app.websocket("/lobby/{game_id}")
@@ -123,54 +181,12 @@ async def lobby_websocket_endpoint(
             return
         
         # 메시지 수신 루프
-        while True:
-            try:
-                # 메시지 수신
-                data = await websocket.receive_text()
-                message = json.loads(data)
-
-                # 하트비트(PING) 메시지 처리
-                if message.get("type") == "PING":
-                    await connection_manager.send_personal_message(
-                        {
-                            "type": "PONG",
-                            "timestamp": datetime.now(timezone.utc).isoformat(),
-                        },
-                        player_id,
-                    )
-                    continue
-
-                # 메시지 처리
-                result = await message_handler.handle_message(player_id, message)
-                
-                # 결과 전송 (필요시)
-                if result.get("success") is not None:
-                    await connection_manager.send_personal_message(
-                        {
-                            "type": "ACTION_RESPONSE",
-                            "data": result,
-                        },
-                        player_id,
-                    )
-            
-            except json.JSONDecodeError:
-                await connection_manager.send_personal_message(
-                    {
-                        "type": "ERROR",
-                        "code": "INVALID_JSON",
-                        "message": "잘못된 JSON 형식입니다.",
-                    },
-                    player_id,
-                )
-            
-            except WebSocketDisconnect:
-                break
-    
+        await run_ws_message_loop(
+            websocket, player_id, connection_manager, message_handler
+        )
     except WebSocketDisconnect:
         pass
-    
     finally:
-        # 연결 해제
         connection_manager.disconnect(player_id)
 
 
@@ -220,54 +236,12 @@ async def websocket_endpoint(
         )
         
         # 메시지 수신 루프
-        while True:
-            try:
-                # 메시지 수신
-                data = await websocket.receive_text()
-                message = json.loads(data)
-
-                # 하트비트(PING) 메시지 처리
-                if message.get("type") == "PING":
-                    await connection_manager.send_personal_message(
-                        {
-                            "type": "PONG",
-                            "timestamp": datetime.now(timezone.utc).isoformat(),
-                        },
-                        player_id,
-                    )
-                    continue
-
-                # 메시지 처리
-                result = await message_handler.handle_message(player_id, message)
-                
-                # 결과 전송 (필요시)
-                if result.get("success") is not None:
-                    await connection_manager.send_personal_message(
-                        {
-                            "type": "ACTION_RESPONSE",
-                            "data": result,
-                        },
-                        player_id,
-                    )
-            
-            except json.JSONDecodeError:
-                await connection_manager.send_personal_message(
-                    {
-                        "type": "ERROR",
-                        "code": "INVALID_JSON",
-                        "message": "잘못된 JSON 형식입니다.",
-                    },
-                    player_id,
-                )
-            
-            except WebSocketDisconnect:
-                break
-    
+        await run_ws_message_loop(
+            websocket, player_id, connection_manager, message_handler
+        )
     except WebSocketDisconnect:
         pass
-    
     finally:
-        # 연결 해제
         connection_manager.disconnect(player_id)
 
 

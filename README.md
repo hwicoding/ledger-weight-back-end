@@ -18,9 +18,9 @@
    pip install -r requirements.txt
    ```
 
-2. **환경 변수 설정**
+2. **환경 변수 설정** (템플릿 파일명: `env.example`)
    ```bash
-   cp .env.example .env
+   cp env.example .env
    # .env 파일을 열어서 필요한 설정 수정
    ```
 
@@ -30,7 +30,7 @@
    uvicorn app.main:app --reload
    
    # 프로덕션 모드
-   uvicorn app.main:app --host 0.0.0.0 --port 8080
+   uvicorn app.main:app --host 0.0.0.0 --port 8088
    ```
 
 ### 주요 엔드포인트
@@ -54,6 +54,8 @@
 - Python 3.8+
 - FastAPI 0.104.1
 - Uvicorn 0.24.0
+- 기본 포트: **8088** (로컬·Docker·배포 동일, `env.example` 참고)
+- 의존성 버전은 `requirements.txt` 기준. FastAPI/ruff 등은 호환성 확인 후 업그레이드 가능.
 
 ## 📝 라이선스
 
