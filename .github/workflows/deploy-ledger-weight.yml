@@ -8,7 +8,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ toLower(github.repository_owner) }}/ledger-weight-back-end
+  IMAGE_NAME: ehwiya/ledger-weight-back-end
 
 jobs:
   build-and-push:
